@@ -1,0 +1,7 @@
+/* App-specific styles - most styling handled by Tailwind */
+
+/* Ensure full-width layout */
+#root {
+  width: 100%;
+  min-height: 100vh;
+}
