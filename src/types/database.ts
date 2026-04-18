@@ -77,6 +77,7 @@ export interface Database {
           status: 'pending' | 'approved' | 'rejected'
           avg_rating: number | null
           photo_url: string | null
+          stripe_connect_account_id: string | null
         }
         Insert: {
           id?: string
@@ -90,6 +91,7 @@ export interface Database {
           status?: 'pending' | 'approved' | 'rejected'
           avg_rating?: number | null
           photo_url?: string | null
+          stripe_connect_account_id?: string | null
         }
         Update: {
           id?: string
@@ -103,6 +105,7 @@ export interface Database {
           status?: 'pending' | 'approved' | 'rejected'
           avg_rating?: number | null
           photo_url?: string | null
+          stripe_connect_account_id?: string | null
         }
       }
       availability_slots: {
@@ -142,6 +145,8 @@ export interface Database {
           payment_status: 'escrow_held' | 'released'
           amount: number
           stripe_payment_intent_id: string | null
+          athlete_confirmed: boolean
+          coach_confirmed: boolean
           created_at: string
         }
         Insert: {
@@ -154,6 +159,8 @@ export interface Database {
           payment_status?: 'escrow_held' | 'released'
           amount: number
           stripe_payment_intent_id?: string | null
+          athlete_confirmed?: boolean
+          coach_confirmed?: boolean
           created_at?: string
         }
         Update: {
@@ -166,6 +173,8 @@ export interface Database {
           payment_status?: 'escrow_held' | 'released'
           amount?: number
           stripe_payment_intent_id?: string | null
+          athlete_confirmed?: boolean
+          coach_confirmed?: boolean
           created_at?: string
         }
       }
@@ -177,6 +186,7 @@ export interface Database {
           coach_id: string
           rating: number
           comment: string | null
+          flagged: boolean
           created_at: string
         }
         Insert: {
@@ -186,6 +196,7 @@ export interface Database {
           coach_id: string
           rating: number
           comment?: string | null
+          flagged?: boolean
           created_at?: string
         }
         Update: {
@@ -195,6 +206,7 @@ export interface Database {
           coach_id?: string
           rating?: number
           comment?: string | null
+          flagged?: boolean
           created_at?: string
         }
       }

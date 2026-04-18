@@ -1,55 +1,95 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
+import { supabase } from '../lib/supabase'
+import { Button } from '../components/ui/Button'
 
 export function LoginPage() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
-  const { signIn } = useAuth()
   const navigate = useNavigate()
+  const { user } = useAuth()
+
+  // Navigate after AuthContext processes the login
+  useEffect(() => {
+    if (!user) return
+
+    if (user.role === 'admin') {
+      navigate('/admin')
+    } else if (user.role === 'coach') {
+      navigate('/dashboard/coach')
+    } else {
+      navigate('/dashboard/athlete')
+    }
+  }, [user, navigate])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError('')
     setLoading(true)
 
-    const { error } = await signIn(email, password)
+    try {
+      const { data, error: authError } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      })
 
-    if (error) {
-      setError(error.message || 'Failed to sign in')
+      if (authError) {
+        setError(authError.message)
+        setLoading(false)
+        return
+      }
+
+      // Fetch user role from the users table to determine redirect
+      if (data.user) {
+        const { data: userData, error: userError } = await supabase
+          .from('users')
+          .select('role')
+          .eq('id', data.user.id)
+          .single()
+
+        const role = userData?.role
+
+        if (role === 'admin') {
+          navigate('/admin')
+        } else if (role === 'coach') {
+          navigate('/dashboard/coach')
+        } else {
+          navigate('/dashboard/athlete')
+        }
+      } else {
+        navigate('/dashboard/athlete')
+      }
+    } catch {
+      setError('Login failed')
       setLoading(false)
-      return
     }
-
-    // Auth context will handle redirect based on role
-    navigate('/dashboard/athlete')
-    setLoading(false)
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-[#F9FAFB] dark:bg-gray-900 flex flex-col justify-center py-12 sm:px-6 lg:px-8 transition-colors duration-200">
       <div className="sm:mx-auto sm:w-full sm:max-w-md">
         <Link to="/" className="flex justify-center mb-8">
-          <span className="text-3xl font-bold text-primary-600">Athlink</span>
+          <span className="text-3xl font-bold text-[#2563EB]">Athlink</span>
         </Link>
-        <h2 className="text-center text-3xl font-bold text-gray-900">
+        <h2 className="text-center text-3xl font-bold text-gray-900 dark:text-gray-50">
           Sign in to your account
         </h2>
       </div>
 
       <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
-        <div className="bg-white py-8 px-4 shadow-sm rounded-lg sm:px-10">
+        <div className="bg-white dark:bg-gray-950 py-8 px-4 shadow-sm rounded-[8px] border border-[#E5E7EB] dark:border-gray-700 sm:px-10 transition-colors duration-200">
           {error && (
-            <div className="mb-4 p-3 bg-red-50 text-red-700 rounded-md text-sm">
+            <div className="mb-4 p-3 bg-red-50 dark:bg-red-950 text-[#DC2626] rounded-[8px] text-sm">
               {error}
             </div>
           )}
 
           <form className="space-y-6" onSubmit={handleSubmit}>
             <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-700">
+              <label htmlFor="email" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
                 Email address
               </label>
               <div className="mt-1">
@@ -61,13 +101,13 @@ export function LoginPage() {
                   required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-lg placeholder-gray-400 focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm"
+                  className="appearance-none block w-full px-3 py-2 border border-[#E5E7EB] dark:border-gray-600 dark:bg-gray-800 rounded-[8px] placeholder-gray-400 focus:outline-none focus:ring-[#2563EB] focus:border-[#2563EB] sm:text-sm"
                 />
               </div>
             </div>
 
             <div>
-              <label htmlFor="password" className="block text-sm font-medium text-gray-700">
+              <label htmlFor="password" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
                 Password
               </label>
               <div className="mt-1">
@@ -79,38 +119,35 @@ export function LoginPage() {
                   required
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-lg placeholder-gray-400 focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm"
+                  className="appearance-none block w-full px-3 py-2 border border-[#E5E7EB] dark:border-gray-600 dark:bg-gray-800 rounded-[8px] placeholder-gray-400 focus:outline-none focus:ring-[#2563EB] focus:border-[#2563EB] sm:text-sm"
                 />
               </div>
             </div>
 
             <div>
-              <button
+              <Button
                 type="submit"
-                disabled={loading}
-                className="w-full flex justify-center py-2 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                fullWidth
+                loading={loading}
               >
                 {loading ? 'Signing in...' : 'Sign in'}
-              </button>
+              </Button>
             </div>
           </form>
 
           <div className="mt-6">
             <div className="relative">
               <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-gray-300" />
+                <div className="w-1/2 border-t border-[#E5E7EB] dark:border-gray-700" />
               </div>
               <div className="relative flex justify-center text-sm">
-                <span className="px-2 bg-white text-gray-500">Don't have an account?</span>
+                <span className="px-2 bg-white dark:bg-gray-950 text-gray-500 dark:text-gray-400">Don&apos;t have an account?</span>
               </div>
             </div>
 
             <div className="mt-6">
-              <Link
-                to="/signup"
-                className="w-full flex justify-center py-2 px-4 border border-gray-300 rounded-lg shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
-              >
-                Create an account
+              <Link to="/signup">
+                <Button variant="secondary" fullWidth>Create an account</Button>
               </Link>
             </div>
           </div>

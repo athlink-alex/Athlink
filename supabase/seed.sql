@@ -1,9 +1,7 @@
 -- Seed data for development/testing
--- This creates demo coaches that will appear in the discovery page
-
--- Note: Run this after the initial schema migration
--- These coaches use placeholder user_ids that won't exist in your auth.users
--- For a real setup, you'd need to create auth users first
+-- This creates availability slots for approved coaches
+--
+-- Run AFTER 003_canonical_schema.sql and 005_demo_auth_users.sql
 
 -- Demo availability slots for coaches
 INSERT INTO availability_slots (coach_id, day_of_week, start_time, end_time, is_booked)

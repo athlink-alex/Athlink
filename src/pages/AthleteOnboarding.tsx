@@ -1,7 +1,13 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { Elements } from '@stripe/react-stripe-js'
+import { stripePromise } from '../lib/stripe'
 import { useAuth } from '../context/AuthContext'
 import { supabase } from '../lib/supabase'
+import { EliteUpgrade } from '../components/payments/EliteUpgrade'
+import { PhotoUpload } from '../components/PhotoUpload'
+import { Button } from '../components/ui/Button'
+import { Card } from '../components/ui/Card'
 
 const SKILL_LEVELS = [
   { value: 'beginner', label: 'Beginner', description: 'Just starting out' },
@@ -9,17 +15,7 @@ const SKILL_LEVELS = [
   { value: 'advanced', label: 'Advanced', description: 'Competitive player' },
 ]
 
-const SPORTS = [
-  'Baseball',
-  'Basketball',
-  'Soccer',
-  'Tennis',
-  'Volleyball',
-  'Swimming',
-  'Football',
-  'Golf',
-  'Other',
-]
+const SPORTS = ['Baseball']
 
 export function AthleteOnboarding() {
   const [step, setStep] = useState(1)
@@ -31,12 +27,16 @@ export function AthleteOnboarding() {
   // Step 1: Profile
   const [name, setName] = useState('')
   const [age, setAge] = useState('')
+  const [photoUrl, setPhotoUrl] = useState<string | null>(null)
 
   // Step 2: Sport Details
-  const [sport, setSport] = useState('')
+  const [sport, setSport] = useState('Baseball')
   const [position, setPosition] = useState('')
   const [skillLevel, setSkillLevel] = useState('')
   const [goals, setGoals] = useState('')
+
+  // Step 3: Tier selection
+  const [selectedTier, setSelectedTier] = useState<'free' | 'elite' | null>(null)
 
   const handleStep1Submit = (e: React.FormEvent) => {
     e.preventDefault()
@@ -48,13 +48,17 @@ export function AthleteOnboarding() {
     setStep(2)
   }
 
-  const handleStep2Submit = async (e: React.FormEvent) => {
+  const handleStep2Submit = (e: React.FormEvent) => {
     e.preventDefault()
     if (!sport || !skillLevel) {
-      setError('Please select a sport and skill level')
+      setError('Please select a skill level')
       return
     }
+    setError('')
+    setStep(3)
+  }
 
+  const handleFreeTierSubmit = async () => {
     setLoading(true)
     setError('')
 
@@ -69,12 +73,12 @@ export function AthleteOnboarding() {
             position,
             skill_level: skillLevel,
             goals,
+            photo_url: photoUrl,
           },
         ])
 
       if (profileError) throw profileError
 
-      // Skip payment for now, redirect to athlete dashboard
       navigate('/dashboard/athlete')
     } catch (err) {
       setError((err as Error).message)
@@ -83,41 +87,79 @@ export function AthleteOnboarding() {
     }
   }
 
+  const handleEliteSuccess = async () => {
+    try {
+      const { error: profileError } = await supabase
+        .from('athlete_profiles')
+        .insert([
+          {
+            user_id: user?.id,
+            name,
+            sport,
+            position,
+            skill_level: skillLevel,
+            goals,
+            photo_url: photoUrl,
+          },
+        ])
+
+      if (profileError) {
+        console.error('Profile creation error after elite upgrade:', profileError)
+      }
+
+      navigate('/dashboard/athlete')
+    } catch (err) {
+      console.error('Navigation error:', err)
+    }
+  }
+
+  const stepLabels = ['Profile', 'Sport Details', 'Membership']
+
   return (
-    <div className="min-h-screen bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-[#F9FAFB] dark:bg-gray-900 py-12 px-4 sm:px-6 lg:px-8 transition-colors duration-200">
       <div className="max-w-xl mx-auto">
         {/* Progress */}
         <div className="mb-8">
           <div className="flex items-center justify-between mb-4">
-            <span className="text-sm font-medium text-gray-900">
-              Step {step} of 2
+            <span className="text-sm font-medium text-gray-900 dark:text-gray-50">
+              Step {step} of 3
             </span>
-            <span className="text-sm text-gray-500">
-              {step === 1 ? 'Profile' : 'Sport Details'}
+            <span className="text-sm text-gray-500 dark:text-gray-400">
+              {stepLabels[step - 1]}
             </span>
           </div>
-          <div className="w-full bg-gray-200 rounded-full h-2">
+          <div className="w-full bg-[#E5E7EB] dark:bg-gray-700 rounded-full h-2">
             <div
-              className="bg-primary-600 h-2 rounded-full transition-all"
-              style={{ width: `${(step / 2) * 100}%` }}
+              className="bg-[#2563EB] h-2 rounded-full transition-all"
+              style={{ width: `${(step / 3) * 100}%` }}
             />
+          </div>
+          <div className="flex justify-between mt-3">
+            {stepLabels.map((label, idx) => (
+              <div key={label} className="flex items-center gap-1.5">
+                <div className={`w-2.5 h-2.5 rounded-full ${idx < step ? 'bg-[#2563EB]' : 'bg-[#E5E7EB] dark:bg-gray-700'}`} />
+                <span className={`text-xs hidden sm:inline ${idx < step ? 'text-[#2563EB] font-medium' : 'text-gray-400'}`}>
+                  {label}
+                </span>
+              </div>
+            ))}
           </div>
         </div>
 
         {error && (
-          <div className="mb-4 p-3 bg-red-50 text-red-700 rounded-md text-sm">
+          <div className="mb-4 p-3 bg-red-50 dark:bg-red-950 text-[#DC2626] rounded-[8px] text-sm">
             {error}
           </div>
         )}
 
-        {step === 1 ? (
-          <form onSubmit={handleStep1Submit} className="bg-white shadow-sm rounded-lg p-8">
-            <h2 className="text-2xl font-bold text-gray-900 mb-2">Tell us about yourself</h2>
-            <p className="text-gray-500 mb-6">This helps us find the right coach for you.</p>
+        {step === 1 && (
+          <Card className="p-8 dark:bg-gray-950 transition-colors duration-200">
+            <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-50 mb-2">Tell us about yourself</h2>
+            <p className="text-gray-500 dark:text-gray-400 mb-6">This helps us find the right coach for you.</p>
 
-            <div className="space-y-6">
+            <form onSubmit={handleStep1Submit} className="space-y-6">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   Full Name
                 </label>
                 <input
@@ -125,12 +167,12 @@ export function AthleteOnboarding() {
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   placeholder="John Smith"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-primary-500 focus:border-primary-500"
+                  className="w-full px-3 py-2 border border-[#E5E7EB] dark:bg-gray-800 dark:border-gray-600 rounded-[8px] focus:outline-none focus:ring-[#2563EB] focus:border-[#2563EB]"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   Age
                 </label>
                 <input
@@ -140,61 +182,51 @@ export function AthleteOnboarding() {
                   placeholder="15"
                   min="5"
                   max="100"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-primary-500 focus:border-primary-500"
+                  className="w-full px-3 py-2 border border-[#E5E7EB] dark:bg-gray-800 dark:border-gray-600 rounded-[8px] focus:outline-none focus:ring-[#2563EB] focus:border-[#2563EB]"
                 />
               </div>
 
-              <button
-                type="submit"
-                className="w-full py-2 px-4 bg-primary-600 text-white rounded-lg hover:bg-primary-700 font-medium"
-              >
-                Continue
-              </button>
-            </div>
-          </form>
-        ) : (
-          <form onSubmit={handleStep2Submit} className="bg-white shadow-sm rounded-lg p-8">
-            <h2 className="text-2xl font-bold text-gray-900 mb-2">Your sport details</h2>
-            <p className="text-gray-500 mb-6">Tell us what you're looking to improve.</p>
+              <PhotoUpload
+                onUploadComplete={setPhotoUrl}
+                currentUrl={photoUrl}
+                label="Profile Photo (optional)"
+              />
 
-            <div className="space-y-6">
+              <Button type="submit" fullWidth>Continue</Button>
+            </form>
+          </Card>
+        )}
+
+        {step === 2 && (
+          <Card className="p-8 dark:bg-gray-950 transition-colors duration-200">
+            <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-50 mb-2">Your baseball details</h2>
+            <p className="text-gray-500 dark:text-gray-400 mb-6">Tell us what you&apos;re looking to improve.</p>
+
+            <form onSubmit={handleStep2Submit} className="space-y-6">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Primary Sport
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Sport
                 </label>
-                <div className="grid grid-cols-3 gap-2">
-                  {SPORTS.map((s) => (
-                    <button
-                      key={s}
-                      type="button"
-                      onClick={() => setSport(s)}
-                      className={`py-2 px-3 text-sm rounded-lg border ${
-                        sport === s
-                          ? 'border-primary-600 bg-primary-50 text-primary-700'
-                          : 'border-gray-200 hover:border-gray-300'
-                      }`}
-                    >
-                      {s}
-                    </button>
-                  ))}
+                <div className="px-4 py-2 bg-[#2563EB]/5 border border-[#2563EB] rounded-[8px] text-[#2563EB] font-medium text-sm inline-block">
+                  Baseball
                 </div>
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Position / Focus (optional)
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Position (optional)
                 </label>
                 <input
                   type="text"
                   value={position}
                   onChange={(e) => setPosition(e.target.value)}
-                  placeholder="e.g., Point Guard, Pitcher"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-primary-500 focus:border-primary-500"
+                  placeholder="e.g., Pitcher, Shortstop, Outfield"
+                  className="w-full px-3 py-2 border border-[#E5E7EB] dark:bg-gray-800 dark:border-gray-600 rounded-[8px] focus:outline-none focus:ring-[#2563EB] focus:border-[#2563EB]"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   Skill Level
                 </label>
                 <div className="space-y-2">
@@ -203,21 +235,21 @@ export function AthleteOnboarding() {
                       key={level.value}
                       type="button"
                       onClick={() => setSkillLevel(level.value)}
-                      className={`w-full p-3 rounded-lg border text-left ${
+                      className={`w-full p-3 rounded-[8px] border text-left transition-colors ${
                         skillLevel === level.value
-                          ? 'border-primary-600 bg-primary-50'
-                          : 'border-gray-200 hover:border-gray-300'
+                          ? 'border-[#2563EB] bg-[#2563EB]/5'
+                          : 'border-[#E5E7EB] dark:border-gray-700 hover:border-gray-300'
                       }`}
                     >
-                      <div className="font-medium text-gray-900">{level.label}</div>
-                      <div className="text-sm text-gray-500">{level.description}</div>
+                      <div className="font-medium text-gray-900 dark:text-gray-50">{level.label}</div>
+                      <div className="text-sm text-gray-500 dark:text-gray-400">{level.description}</div>
                     </button>
                   ))}
                 </div>
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   Your Goals (optional)
                 </label>
                 <textarea
@@ -225,28 +257,146 @@ export function AthleteOnboarding() {
                   onChange={(e) => setGoals(e.target.value)}
                   placeholder="What are you hoping to achieve?"
                   rows={3}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-primary-500 focus:border-primary-500"
+                  className="w-full px-3 py-2 border border-[#E5E7EB] dark:bg-gray-800 dark:border-gray-600 rounded-[8px] focus:outline-none focus:ring-[#2563EB] focus:border-[#2563EB]"
                 />
               </div>
 
               <div className="flex gap-3">
+                <Button variant="secondary" fullWidth onClick={() => setStep(1)}>Back</Button>
+                <Button type="submit" fullWidth>Continue</Button>
+              </div>
+            </form>
+          </Card>
+        )}
+
+        {step === 3 && (
+          <div className="space-y-6">
+            <Card className="p-8 dark:bg-gray-950 transition-colors duration-200">
+              <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-50 mb-2">Choose your plan</h2>
+              <p className="text-gray-500 dark:text-gray-400 mb-6">
+                Start with a free account or upgrade to Elite for priority booking and exclusive perks.
+              </p>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                {/* Free Tier */}
                 <button
                   type="button"
-                  onClick={() => setStep(1)}
-                  className="flex-1 py-2 px-4 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium"
+                  onClick={() => setSelectedTier('free')}
+                  className={`p-6 rounded-[8px] border-2 text-left transition-all ${
+                    selectedTier === 'free'
+                      ? 'border-[#2563EB] bg-[#2563EB]/5'
+                      : 'border-[#E5E7EB] dark:border-gray-700 hover:border-gray-300'
+                  }`}
                 >
-                  Back
+                  <div className="text-lg font-bold text-gray-900 dark:text-gray-50 mb-1">Free</div>
+                  <div className="text-2xl font-bold text-gray-900 dark:text-gray-50">$0</div>
+                  <div className="text-sm text-gray-500 dark:text-gray-400 mt-1">/month</div>
+                  <ul className="mt-4 space-y-2 text-sm text-gray-600 dark:text-gray-400">
+                    <li className="flex items-center gap-2">
+                      <svg className="w-4 h-4 text-[#16A34A] flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                      </svg>
+                      Browse coaches
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <svg className="w-4 h-4 text-[#16A34A] flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                      </svg>
+                      Book sessions
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <svg className="w-4 h-4 text-[#16A34A] flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                      </svg>
+                      Leave reviews
+                    </li>
+                  </ul>
                 </button>
+
+                {/* Elite Tier */}
                 <button
-                  type="submit"
-                  disabled={loading}
-                  className="flex-1 py-2 px-4 bg-primary-600 text-white rounded-lg hover:bg-primary-700 font-medium disabled:opacity-50"
+                  type="button"
+                  onClick={() => setSelectedTier('elite')}
+                  className={`p-6 rounded-[8px] border-2 text-left transition-all ${
+                    selectedTier === 'elite'
+                      ? 'border-[#F59E0B] bg-[#F59E0B]/5'
+                      : 'border-[#E5E7EB] dark:border-gray-700 hover:border-gray-300'
+                  }`}
                 >
-                  {loading ? 'Saving...' : 'Complete Setup'}
+                  <div className="flex items-center gap-2 mb-1">
+                    <div className="text-lg font-bold text-gray-900 dark:text-gray-50">Elite</div>
+                    <span className="px-2 py-0.5 text-xs font-semibold rounded-full bg-[#F59E0B]/15 dark:bg-[#F59E0B]/5 text-[#D97706] border border-[#F59E0B]/30">
+                      RECOMMENDED
+                    </span>
+                  </div>
+                  <div className="text-2xl font-bold text-gray-900 dark:text-gray-50">$19</div>
+                  <div className="text-sm text-gray-500 dark:text-gray-400 mt-1">/month</div>
+                  <ul className="mt-4 space-y-2 text-sm text-gray-600 dark:text-gray-400">
+                    <li className="flex items-center gap-2">
+                      <svg className="w-4 h-4 text-[#16A34A] flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                      </svg>
+                      Everything in Free
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <svg className="w-4 h-4 flex-shrink-0 text-[#F59E0B]" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z" />
+                      </svg>
+                      Priority booking slots
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <svg className="w-4 h-4 flex-shrink-0 text-[#F59E0B]" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z" />
+                      </svg>
+                      Gold Elite badge
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <svg className="w-4 h-4 flex-shrink-0 text-[#F59E0B]" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z" />
+                      </svg>
+                      Early access to new coaches
+                    </li>
+                  </ul>
                 </button>
               </div>
-            </div>
-          </form>
+            </Card>
+
+            {/* Free tier completion */}
+            {selectedTier === 'free' && (
+              <Card className="p-6 dark:bg-gray-950 transition-colors duration-200">
+                <p className="text-gray-600 dark:text-gray-400 mb-4">
+                  You can upgrade to Elite anytime from your dashboard.
+                </p>
+                <div className="flex gap-3">
+                  <Button variant="secondary" fullWidth onClick={() => setStep(2)}>Back</Button>
+                  <Button fullWidth loading={loading} onClick={handleFreeTierSubmit}>
+                    {loading ? 'Setting up...' : 'Start for Free'}
+                  </Button>
+                </div>
+              </Card>
+            )}
+
+            {/* Elite tier payment */}
+            {selectedTier === 'elite' && (
+              <div>
+                <div className="mb-4">
+                  <button
+                    type="button"
+                    onClick={() => setStep(2)}
+                    className="text-sm text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
+                  >
+                    &larr; Back to sport details
+                  </button>
+                </div>
+                <Elements stripe={stripePromise}>
+                  <EliteUpgrade />
+                </Elements>
+                <Button fullWidth className="mt-4" onClick={handleEliteSuccess}>
+                  Continue to Dashboard
+                </Button>
+              </div>
+            )}
+          </div>
         )}
       </div>
     </div>
