@@ -8,56 +8,57 @@ import { RotatingHeadline } from '../components/landing/RotatingHeadline'
 import { InfoTabs } from '../components/landing/InfoTabs'
 import { LandingNav } from '../components/landing/LandingNav'
 import HeroBackground from '../components/landing/HeroBackground'
+import { prefersReducedMotion } from '../hooks/useAnimations'
 
 const COMING_SOON_SPORTS = [
-  { emoji: '\u26BE', name: 'Softball' },
-  { emoji: '\u26F3', name: 'Golf' },
-  { emoji: '\uD83C\uDFC0', name: 'Basketball' },
-  { emoji: '\u26BD', name: 'Soccer' },
-  { emoji: '\uD83C\uDFBE', name: 'Tennis' },
+  { emoji: '🏐', name: 'Volleyball' },
+  { emoji: '⚽', name: 'Soccer' },
+  { emoji: '🏀', name: 'Basketball' },
+  { emoji: '🎾', name: 'Tennis' },
+  { emoji: '⚾', name: 'Softball' },
 ]
 
 const HOW_IT_WORKS = [
   {
     step: 1,
-    icon: '\uD83D\uDCCB',
+    icon: '📋',
     title: 'Answer a few quick questions',
     desc: 'Share your position, skill level, and training goals. We use this to match you with the right coach.',
   },
   {
     step: 2,
-    icon: '\uD83D\uDD0D',
+    icon: '🔍',
     title: 'Find your coach',
-    desc: 'Browse verified South Bay baseball coaches. See their background, specialty, pricing, and availability.',
+    desc: 'Browse verified Los Angeles baseball coaches. See their background, specialty, pricing, and availability.',
   },
   {
     step: 3,
-    icon: '\uD83D\uDCC5',
+    icon: '📅',
     title: 'Book a session',
-    desc: 'Pick a time that works for you and pay securely through Athlink. Funds are only released after your session.',
+    desc: 'Pick a time that works for you and pay securely through AthlinkPro. Funds are held in escrow and only released after your session.',
   },
 ]
 
 const WHY_ATHLINK = [
   {
-    icon: '\u2705',
+    icon: '✅',
     title: 'Verified Coaches Only',
-    desc: 'Every coach on Athlink is manually reviewed by our team before they can accept bookings. No unvetted strangers.',
+    desc: 'Every coach on AthlinkPro is manually reviewed by our team before they can accept bookings. No unvetted strangers.',
   },
   {
-    icon: '\uD83D\uDD12',
+    icon: '🔒',
     title: 'Secure Escrow Payments',
     desc: 'Your payment is held securely and only released to the coach after your session is confirmed complete.',
   },
   {
-    icon: '\uD83D\uDCCD',
-    title: 'South Bay Local',
-    desc: "We're built for the South Bay community — Hermosa Beach, Manhattan Beach, Redondo Beach, and Torrance.",
+    icon: '📍',
+    title: 'Los Angeles Local',
+    desc: "We're built for the Los Angeles community — 5,000+ private coaches and 500K+ youth athletes, the largest youth sports market in the US.",
   },
   {
-    icon: '\u26BE',
-    title: 'Baseball Focused',
-    desc: 'Athlink is built specifically for baseball development. Every coach, every session, every feature — tailored to the game.',
+    icon: '⚾',
+    title: 'Starting with Baseball',
+    desc: 'AthlinkPro is built specifically for baseball coaching first, expanding to volleyball, soccer, basketball, and tennis across LA.',
   },
 ]
 
@@ -88,13 +89,12 @@ const SPOTLIGHT_COACHES = [
   },
 ]
 
-/* ── Animation helpers ── */
+/* ── Animation helpers (using shared module) ── */
 
-const prefersReducedMotion = () =>
-  typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches
+const reducedMotion = prefersReducedMotion()
 
 const sectionReveal = {
-  initial: prefersReducedMotion() ? {} : { opacity: 0, y: 30 },
+  initial: reducedMotion ? {} : { opacity: 0, y: 30 },
   whileInView: { opacity: 1, y: 0 },
   viewport: { once: true, amount: 0.2 },
   transition: { duration: 0.6, ease: 'easeOut' as const },
@@ -107,7 +107,7 @@ const staggerContainer = {
 }
 
 const staggerChild = (delay = 0.15) => ({
-  initial: prefersReducedMotion() ? {} : { opacity: 0, y: 20 },
+  initial: reducedMotion ? {} : { opacity: 0, y: 20 },
   whileInView: { opacity: 1, y: 0 },
   viewport: { once: true, amount: 0.2 },
   transition: { duration: 0.5, ease: 'easeOut' as const, delay },
@@ -129,73 +129,93 @@ export function LandingPage() {
     <>
       <IntroOverlay />
 
-      <div className="min-h-screen bg-white dark:bg-gray-950 transition-colors duration-200">
-      {/* Landing navbar with transparent→solid scroll */}
+      <div className="min-h-screen bg-white dark:bg-[#070A14] transition-colors duration-200">
       <LandingNav />
 
-      {/* Landing page content */}
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ duration: 0.5 }}
       >
 
-        {/* Section 2 — Hero */}
-        <div className="relative overflow-hidden bg-[#F0F4FF] dark:bg-gray-950 transition-colors duration-200">
+        {/* Hero */}
+        <div className="relative overflow-hidden bg-[#F0F4FF] dark:bg-[#070A14] transition-colors duration-200">
           <HeroBackground isDark={theme === 'dark'} />
           <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-28 sm:pt-36 lg:pt-44 pb-24 sm:pb-32 lg:pb-40">
             <div className="text-center relative z-10">
               <RotatingHeadline />
-              <p className="mt-6 text-lg sm:text-xl text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">
-                Athlink connects baseball players and parents with verified local coaches. Browse coaches, book sessions, and pay securely — all in one place.
+              <p className="mt-6 text-lg sm:text-xl text-gray-600 dark:text-white/50 max-w-2xl mx-auto">
+                AthlinkPro connects baseball players and parents with verified local coaches in Los Angeles. Browse coaches, book sessions, and pay securely — all in one place.
               </p>
               <div className="mt-10 flex flex-col sm:flex-row justify-center gap-4">
                 {user ? (
                   <Link to={getDashboardLink()}>
-                    <Button size="lg">Go to Dashboard</Button>
+                    <Button size="lg" variant="gradient" arrow>Go to Dashboard</Button>
                   </Link>
                 ) : (
                   <>
                     <Link to="/get-started/athlete">
-                      <Button size="lg">Find a Coach</Button>
+                      <Button size="lg" variant="gradient" arrow>Find a Coach</Button>
                     </Link>
                     <Link to="/get-started/coach">
                       <Button variant="secondary" size="lg"
-                        className="bg-white/80 border-gray-300 text-gray-700 hover:bg-white dark:bg-white/10 dark:border-white/20 dark:text-white dark:hover:bg-white/20">
+                        className="bg-white/80 border-gray-300 text-gray-700 hover:bg-white dark:bg-white/[0.06] dark:border-white/[0.1] dark:text-white/80 dark:hover:bg-white/[0.1]">
                         Become a Coach
                       </Button>
                     </Link>
                   </>
                 )}
               </div>
-              <p className="mt-6 text-sm text-gray-500 dark:text-gray-500">
-                Verified coaches &nbsp; Secure payments &nbsp; South Bay local
-              </p>
+              {/* Trust bar with icons */}
+              <motion.div
+                className="mt-6 flex flex-wrap justify-center gap-4 sm:gap-6 text-sm text-gray-500 dark:text-white/40"
+                initial={reducedMotion ? {} : { opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5, delay: 0.4 }}
+              >
+                <span className="flex items-center gap-1.5">
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z" />
+                  </svg>
+                  Verified coaches
+                </span>
+                <span className="flex items-center gap-1.5">
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z" />
+                  </svg>
+                  Secure payments
+                </span>
+                <span className="flex items-center gap-1.5">
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z" />
+                  </svg>
+                  Los Angeles local
+                </span>
+              </motion.div>
             </div>
           </div>
         </div>
 
-        {/* Section 3 — Stats Bar */}
-        <motion.div {...sectionReveal} className="bg-[#2563EB] dark:bg-blue-900 py-4">
+        {/* Stats Bar — gradient */}
+        <motion.div {...sectionReveal} className="bg-gradient-to-r from-[#2563EB] to-[#06B6D4] py-4">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="flex flex-wrap justify-center gap-6 sm:gap-12 text-sm font-medium text-white dark:text-blue-100">
-              <span><strong>5</strong> Verified Coaches</span>
+            <div className="flex flex-wrap justify-center gap-6 sm:gap-12 text-sm font-medium text-white/90">
+              <span><strong className="text-white">Los Angeles</strong> — 5,000+ coaches &middot; 500K+ youth athletes</span>
               <span className="hidden sm:inline text-white/30">|</span>
-              <span><strong>South Bay, CA</strong> — Hermosa, Manhattan, Redondo &amp; Torrance</span>
+              <span><strong className="text-white">Beta Launch</strong> — 2026</span>
               <span className="hidden sm:inline text-white/30">|</span>
-              <span><strong>Beta Launch</strong> — 2026</span>
-              <span className="hidden sm:inline text-white/30">|</span>
-              <span><strong>100% Secure</strong> Stripe Payments</span>
+              <span><strong className="text-white">100% Secure</strong> Stripe Payments</span>
             </div>
           </div>
         </motion.div>
 
-        {/* Section 4 — How It Works */}
-        <div id="how-it-works" className="bg-[#F9FAFB] dark:bg-gray-900 py-20 sm:py-24 transition-colors duration-200">
+        {/* How It Works */}
+        <div className="bg-[#F9FAFB] dark:bg-[#0A0E1A] py-20 sm:py-24 transition-colors duration-200">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <motion.div {...sectionReveal} className="text-center mb-16">
-              <h2 className="text-3xl font-bold text-gray-900 dark:text-gray-50">How Athlink Works</h2>
-              <p className="mt-2 text-gray-500 dark:text-gray-400">Getting started takes less than 2 minutes.</p>
+              <h2 className="text-3xl font-bold text-gray-900 dark:text-white/90">How AthlinkPro Works</h2>
+              <p className="mt-2 text-gray-500 dark:text-white/50">Getting started takes less than 2 minutes.</p>
             </motion.div>
             <motion.div
               {...staggerContainer}
@@ -205,29 +225,29 @@ export function LandingPage() {
                 <motion.div
                   key={item.step}
                   {...staggerChild(0.15 * i)}
-                  className="bg-white dark:bg-gray-900 p-8 rounded-[8px] shadow-sm border border-[#E5E7EB] dark:border-gray-700 transition-colors duration-200"
+                  className="dark:glass-card p-8 rounded-[8px] bg-white shadow-sm border border-[#E5E7EB] dark:border-none transition-colors duration-200"
                 >
                   <div className="flex items-center gap-3 mb-4">
-                    <span className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-[#2563EB] text-white text-sm font-bold">{item.step}</span>
+                    <span className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-gradient-to-r from-[#2563EB] to-[#06B6D4] text-white text-sm font-bold">{item.step}</span>
                     <span className="text-2xl">{item.icon}</span>
                   </div>
-                  <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-50 mb-2">{item.title}</h3>
-                  <p className="text-gray-500 dark:text-gray-400 text-sm">{item.desc}</p>
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white/90 mb-2">{item.title}</h3>
+                  <p className="text-gray-500 dark:text-white/50 text-sm">{item.desc}</p>
                 </motion.div>
               ))}
             </motion.div>
           </div>
         </div>
 
-        {/* Section 5 — InfoTabs (NEW) */}
+        {/* InfoTabs */}
         <InfoTabs />
 
-        {/* Section 6 — Coach Spotlight */}
-        <div className="bg-white dark:bg-gray-950 py-20 sm:py-24 transition-colors duration-200">
+        {/* Coach Spotlight */}
+        <div className="bg-white dark:bg-[#070A14] py-20 sm:py-24 transition-colors duration-200">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <motion.div {...sectionReveal} className="text-center mb-16">
-              <h2 className="text-3xl font-bold text-gray-900 dark:text-gray-50">Meet Our Coaches</h2>
-              <p className="mt-2 text-gray-500 dark:text-gray-400">All coaches are verified and background-checked before joining Athlink.</p>
+              <h2 className="text-3xl font-bold text-gray-900 dark:text-white/90">Meet Our Coaches</h2>
+              <p className="mt-2 text-gray-500 dark:text-white/50">All coaches are verified and background-checked before joining AthlinkPro.</p>
             </motion.div>
             <motion.div
               {...staggerContainer}
@@ -237,33 +257,33 @@ export function LandingPage() {
                 <motion.div
                   key={coach.name}
                   {...staggerChild(0.1 * i)}
-                  className="bg-white dark:bg-gray-900 p-6 rounded-[8px] shadow-sm border border-[#E5E7EB] dark:border-gray-700 transition-colors duration-200"
+                  className="dark:glass-card p-6 rounded-[8px] bg-white shadow-sm border border-[#E5E7EB] dark:border-none transition-colors duration-200"
                 >
                   <div className="flex items-center gap-3 mb-4">
-                    <div className="w-14 h-14 rounded-full bg-[#2563EB]/10 flex items-center justify-center text-[#2563EB] font-bold text-lg">
+                    <div className="w-14 h-14 rounded-full bg-gradient-to-br from-[#2563EB]/20 to-[#06B6D4]/20 dark:from-[#2563EB]/15 dark:to-[#06B6D4]/15 flex items-center justify-center gradient-text font-bold text-lg">
                       {coach.name.split(' ').map(n => n[0]).join('')}
                     </div>
                     <div>
-                      <h3 className="font-semibold text-gray-900 dark:text-gray-50">{coach.name}</h3>
-                      <p className="text-sm text-[#2563EB]">{coach.specialty}</p>
+                      <h3 className="font-semibold text-gray-900 dark:text-white/90">{coach.name}</h3>
+                      <p className="text-sm gradient-text">{coach.specialty}</p>
                     </div>
                   </div>
                   <div className="flex items-center gap-1 mb-3">
                     <svg className="w-5 h-5 text-[#F59E0B]" fill="currentColor" viewBox="0 0 20 20">
                       <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
                     </svg>
-                    <span className="font-medium text-gray-900 dark:text-gray-50">{coach.rating}</span>
-                    <span className="text-gray-500 dark:text-gray-400 text-sm"> &middot; {coach.experience} yrs exp</span>
+                    <span className="font-medium text-gray-900 dark:text-white/90">{coach.rating}</span>
+                    <span className="text-gray-500 dark:text-white/40 text-sm"> &middot; {coach.experience} yrs exp</span>
                   </div>
-                  <p className="text-gray-600 dark:text-gray-400 text-sm mb-4">{coach.bio}</p>
-                  <p className="text-lg font-bold text-gray-900 dark:text-gray-50">${coach.rate}/hr</p>
+                  <p className="text-gray-600 dark:text-white/50 text-sm mb-4">{coach.bio}</p>
+                  <p className="text-lg font-bold gradient-text">${coach.rate}/hr</p>
                 </motion.div>
               ))}
             </motion.div>
             <motion.div {...sectionReveal} className="text-center mt-8">
               <Link
                 to={user ? '/coaches' : '/signup'}
-                className="text-[#2563EB] hover:underline font-medium"
+                className="gradient-text hover:opacity-80 transition-opacity font-medium"
               >
                 View All Coaches &rarr;
               </Link>
@@ -271,11 +291,11 @@ export function LandingPage() {
           </div>
         </div>
 
-        {/* Section 7 — Why Athlink */}
-        <div className="bg-[#F9FAFB] dark:bg-gray-900 py-20 sm:py-24 transition-colors duration-200">
+        {/* Why Athlink */}
+        <div className="bg-[#F9FAFB] dark:bg-[#0A0E1A] py-20 sm:py-24 transition-colors duration-200">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <motion.div {...sectionReveal} className="text-center mb-16">
-              <h2 className="text-3xl font-bold text-gray-900 dark:text-gray-50">Why Choose Athlink?</h2>
+              <h2 className="text-3xl font-bold text-gray-900 dark:text-white/90">Why Choose AthlinkPro?</h2>
             </motion.div>
             <motion.div
               {...staggerContainer}
@@ -285,58 +305,58 @@ export function LandingPage() {
                 <motion.div
                   key={item.title}
                   {...staggerChild(0.1 * i)}
-                  className="bg-white dark:bg-gray-900 p-8 rounded-[8px] shadow-sm border border-[#E5E7EB] dark:border-gray-700 transition-colors duration-200"
+                  className="dark:glass-card p-8 rounded-[8px] bg-white shadow-sm border border-[#E5E7EB] dark:border-none transition-colors duration-200"
                 >
                   <span className="text-2xl mb-3 block">{item.icon}</span>
-                  <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-50 mb-2">{item.title}</h3>
-                  <p className="text-gray-500 dark:text-gray-400 text-sm">{item.desc}</p>
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white/90 mb-2">{item.title}</h3>
+                  <p className="text-gray-500 dark:text-white/50 text-sm">{item.desc}</p>
                 </motion.div>
               ))}
             </motion.div>
           </div>
         </div>
 
-        {/* Section 8 — Dual CTA */}
-        <motion.div {...sectionReveal} className="bg-white dark:bg-gray-950 py-20 sm:py-24 transition-colors duration-200">
+        {/* Dual CTA */}
+        <motion.div {...sectionReveal} className="bg-white dark:bg-[#070A14] py-20 sm:py-24 transition-colors duration-200">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-0 rounded-[8px] overflow-hidden border border-[#E5E7EB] dark:border-gray-700">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-0 rounded-[8px] overflow-hidden border border-[#E5E7EB] dark:border-white/[0.06]">
               {/* Athletes */}
-              <div className="bg-blue-50 dark:bg-blue-950 p-10 sm:p-12 transition-colors duration-200">
-                <span className="text-3xl mb-4 block">{'\u26BE'}</span>
-                <h3 className="text-2xl font-bold text-gray-900 dark:text-gray-50 mb-3">
+              <div className="bg-blue-50 dark:bg-gradient-to-br dark:from-[#2563EB]/10 dark:to-transparent p-10 sm:p-12 transition-colors duration-200">
+                <span className="text-3xl mb-4 block">{'⚾'}</span>
+                <h3 className="text-2xl font-bold text-gray-900 dark:text-white/90 mb-3">
                   Find the right coach for your game
                 </h3>
-                <p className="text-gray-600 dark:text-gray-400 mb-6">
-                  Whether your kid is just picking up a bat or training for varsity, Athlink has a coach for every level.
+                <p className="text-gray-600 dark:text-white/50 mb-6">
+                  Whether your kid is just picking up a bat or training for varsity, AthlinkPro has a coach for every level.
                 </p>
                 <Link to="/get-started/athlete">
-                  <Button>Find a Coach</Button>
+                  <Button variant="gradient" arrow>Find a Coach</Button>
                 </Link>
               </div>
               {/* Coaches */}
-              <div className="bg-[#F9FAFB] dark:bg-gray-900 p-10 sm:p-12 border-t md:border-t-0 md:border-l border-[#E5E7EB] dark:border-gray-700 transition-colors duration-200">
-                <span className="text-3xl mb-4 block">{'\uD83C\uDFC6'}</span>
-                <h3 className="text-2xl font-bold text-gray-900 dark:text-gray-50 mb-3">
+              <div className="bg-[#F9FAFB] dark:bg-gradient-to-br dark:from-[#06B6D4]/10 dark:to-transparent p-10 sm:p-12 border-t md:border-t-0 md:border-l border-[#E5E7EB] dark:border-white/[0.06] transition-colors duration-200">
+                <span className="text-3xl mb-4 block">{'🏆'}</span>
+                <h3 className="text-2xl font-bold text-gray-900 dark:text-white/90 mb-3">
                   Grow your coaching business
                 </h3>
-                <p className="text-gray-600 dark:text-gray-400 mb-6">
-                  Join Athlink to reach motivated athletes in the South Bay. Set your own rates, manage your schedule, and get paid securely.
+                <p className="text-gray-600 dark:text-white/50 mb-6">
+                  Join AthlinkPro to reach motivated athletes in Los Angeles. Set your own rates, manage your schedule, and get paid securely.
                 </p>
                 <Link to="/get-started/coach">
-                  <Button variant="secondary">Apply to Coach</Button>
+                  <Button variant="gradient" arrow>Apply to Coach</Button>
                 </Link>
               </div>
             </div>
           </div>
         </motion.div>
 
-        {/* Section 9 — Coming Soon Sports */}
-        <div className="bg-[#F9FAFB] dark:bg-gray-900 py-16 transition-colors duration-200">
+        {/* Coming Soon Sports */}
+        <div className="bg-[#F9FAFB] dark:bg-[#0A0E1A] py-16 transition-colors duration-200">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <motion.div {...sectionReveal} className="text-center mb-10">
-              <h2 className="text-2xl font-bold text-gray-400 dark:text-gray-500">More Sports Coming Soon</h2>
-              <p className="text-gray-400 dark:text-gray-600 text-sm mt-2">
-                Athlink is starting with baseball and expanding to more sports in 2026.
+              <h2 className="text-2xl font-bold text-gray-400 dark:text-white/40">More Sports Coming Soon</h2>
+              <p className="text-gray-400 dark:text-white/30 text-sm mt-2">
+                AthlinkPro is starting with baseball and expanding to volleyball, soccer, basketball, and tennis across LA.
               </p>
             </motion.div>
             <motion.div
@@ -347,11 +367,11 @@ export function LandingPage() {
                 <motion.div
                   key={sport.name}
                   {...staggerChild(0.08 * i)}
-                  className="relative flex flex-col items-center justify-center p-6 bg-gray-100 dark:bg-gray-800 border border-[#E5E7EB] dark:border-gray-700 rounded-[8px] opacity-50 dark:opacity-40 cursor-not-allowed select-none"
+                  className="relative flex flex-col items-center justify-center p-6 dark:glass-card bg-gray-100 border border-[#E5E7EB] dark:border-none rounded-[8px] opacity-50 dark:opacity-60 cursor-not-allowed select-none"
                 >
                   <span className="text-3xl mb-2">{sport.emoji}</span>
-                  <span className="text-sm font-medium text-gray-500 dark:text-gray-400">{sport.name}</span>
-                  <span className="mt-2 px-2 py-0.5 bg-[#E5E7EB] dark:bg-gray-700 text-gray-500 dark:text-gray-400 text-xs font-medium rounded-full">
+                  <span className="text-sm font-medium text-gray-500 dark:text-white/50">{sport.name}</span>
+                  <span className="mt-2 px-2 py-0.5 bg-[#E5E7EB] dark:bg-white/[0.08] text-gray-500 dark:text-white/40 text-xs font-medium rounded-full">
                     Coming Soon
                   </span>
                 </motion.div>
@@ -360,17 +380,16 @@ export function LandingPage() {
           </div>
         </div>
 
-        {/* Section 10 — Footer */}
-        <footer className="bg-gray-950 text-gray-400 py-12">
+        {/* Footer */}
+        <footer className="bg-[#070A14] text-gray-400 py-12">
+          <div className="h-px bg-gradient-to-r from-transparent via-[#2563EB] to-transparent mb-12" />
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-              {/* Left */}
               <div>
-                <p className="text-white font-semibold text-lg">Athlink</p>
-                <p className="text-sm mt-1">South Bay Beta &middot; 2026</p>
-                <p className="text-sm mt-1 text-gray-500">Built for the diamond.</p>
+                <p className="text-white font-semibold text-lg">Athlink<span className="text-[#06B6D4]">Pro</span></p>
+                <p className="text-sm mt-1 text-gray-500">Los Angeles Beta &middot; 2026</p>
+                <p className="text-sm mt-1 text-gray-600">The platform built for private coaches.</p>
               </div>
-              {/* Center */}
               <div>
                 <p className="text-white font-medium text-sm mb-3">Quick Links</p>
                 <ul className="space-y-2 text-sm">
@@ -378,9 +397,10 @@ export function LandingPage() {
                   <li><Link to="/get-started/athlete" className="hover:text-white transition-colors">Find a Coach</Link></li>
                   <li><Link to="/get-started/coach" className="hover:text-white transition-colors">Become a Coach</Link></li>
                   <li><a href="#" className="hover:text-white transition-colors">Contact Us</a></li>
+                  <li><Link to="/terms" className="hover:text-white transition-colors">Terms of Service</Link></li>
+                  <li><Link to="/privacy" className="hover:text-white transition-colors">Privacy Policy</Link></li>
                 </ul>
               </div>
-              {/* Right */}
               <div className="text-sm">
                 <div className="flex items-center gap-2 mb-2">
                   <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -388,7 +408,7 @@ export function LandingPage() {
                   </svg>
                   <span>All payments secured by Stripe</span>
                 </div>
-                <p className="text-gray-500">&copy; 2026 Athlink. All rights reserved.</p>
+                <p className="text-gray-600">&copy; 2026 AthlinkPro. All rights reserved.</p>
               </div>
             </div>
           </div>

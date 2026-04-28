@@ -22,6 +22,16 @@ export default {
         warning: '#D97706',
         error: '#DC2626',
         elite: '#F59E0B',
+        premium: {
+          bg: '#070A14',
+          surface: '#0F1320',
+          'surface-light': '#161B2E',
+          border: 'rgba(255, 255, 255, 0.06)',
+          'border-active': 'rgba(255, 255, 255, 0.12)',
+          'text-primary': '#F1F5F9',
+          'text-secondary': '#94A3B8',
+          'text-tertiary': '#475569',
+        },
       },
       fontFamily: {
         sans: ['Inter', 'system-ui', 'sans-serif'],

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
+import { motion } from 'framer-motion'
 import { useAuth } from '../context/AuthContext'
 import { supabase } from '../lib/supabase'
 import { DisputeModal } from '../components/payments/DisputeModal'
@@ -8,6 +9,7 @@ import { Button } from '../components/ui/Button'
 import { Badge } from '../components/ui/Badge'
 import { StatsRow } from '../components/ui/StatsRow'
 import { AppLayout } from '../components/layout/AppLayout'
+import { staggerContainer, staggerChild, prefersReducedMotion } from '../hooks/useAnimations'
 
 interface AthleteProfile {
   name: string | null
@@ -32,7 +34,9 @@ export function AthleteDashboard() {
   const [bookings, setBookings] = useState<BookingWithCoach[]>([])
   const [loading, setLoading] = useState(true)
   const [confirmingBookingId, setConfirmingBookingId] = useState<string | null>(null)
+  const [cancellingBookingId, setCancellingBookingId] = useState<string | null>(null)
   const [disputeBookingId, setDisputeBookingId] = useState<string | null>(null)
+  const reducedMotion = prefersReducedMotion()
 
   const fetchBookings = async () => {
     if (!user) {
@@ -41,7 +45,6 @@ export function AthleteDashboard() {
     }
 
     try {
-      // Fetch athlete profile
       const { data: profileData } = await supabase
         .from('athlete_profiles')
         .select('name')
@@ -102,7 +105,6 @@ export function AthleteDashboard() {
       const booking = bookings.find(b => b.id === bookingId)
       if (!booking) return
 
-      // Mark athlete as confirmed
       const { error: updateError } = await supabase
         .from('bookings')
         .update({ athlete_confirmed: true })
@@ -113,7 +115,6 @@ export function AthleteDashboard() {
         return
       }
 
-      // If coach already confirmed, both parties have confirmed — release escrow
       if (booking.coach_confirmed) {
         const { data: { session } } = await supabase.auth.getSession()
         const token = session?.access_token
@@ -141,6 +142,39 @@ export function AthleteDashboard() {
       console.error('Error confirming session:', err)
     } finally {
       setConfirmingBookingId(null)
+    }
+  }
+
+  const handleCancelBooking = async (bookingId: string) => {
+    if (!confirm('Cancel this booking? Your payment will be refunded.')) return
+    setCancellingBookingId(bookingId)
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      const token = session?.access_token
+
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/cancel-booking`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ bookingId }),
+        }
+      )
+
+      if (!response.ok) {
+        const err = await response.json()
+        console.error('Cancel failed:', err)
+        return
+      }
+
+      await fetchBookings()
+    } catch (err) {
+      console.error('Error cancelling booking:', err)
+    } finally {
+      setCancellingBookingId(null)
     }
   }
 
@@ -177,42 +211,51 @@ export function AthleteDashboard() {
 
   return (
     <AppLayout>
-      <div className="py-8 px-4 sm:px-6 lg:px-8 transition-colors duration-200">
-        {/* Welcome Section */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-8">
+      <div className="py-8 px-4 sm:px-6 lg:px-8">
+        {/* Welcome */}
+        <motion.div
+          className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-8"
+          initial={reducedMotion ? {} : { opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
+        >
           <div>
-            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-gray-50">
+            <h1 className="text-2xl sm:text-3xl font-bold text-white/90">
               Welcome back, {firstName}
             </h1>
-            <p className="text-gray-500 dark:text-gray-400 mt-1">Ready to level up your game?</p>
+            <p className="text-white/50 mt-1">Ready to level up your game?</p>
           </div>
           <div className="mt-4 sm:mt-0 flex items-center gap-3">
-            {membershipTier === 'elite' ? (
-              <Badge status="elite" />
+            {membershipTier === 'pro' ? (
+              <Badge status="pro" />
             ) : (
-              <span className="px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-600 dark:text-gray-400">
+              <span className="px-2.5 py-0.5 rounded-full text-xs font-medium bg-white/[0.06] text-white/40 border border-white/[0.08]">
                 Free
               </span>
             )}
             <Link to="/coaches">
-              <Button>Find a Coach</Button>
+              <Button variant="gradient" arrow>Find a Coach</Button>
             </Link>
           </div>
-        </div>
+        </motion.div>
 
-        {/* Membership Upgrade Banner */}
-        {membershipTier !== 'elite' && (
-          <div className="mb-8 p-4 bg-[#F59E0B]/10 border border-[#F59E0B]/30 rounded-[8px] flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-            <div>
-              <p className="font-medium text-gray-900 dark:text-gray-50">Upgrade to Elite</p>
-              <p className="text-sm text-gray-600 dark:text-gray-400">Get priority booking and exclusive benefits for $19/mo</p>
+        {/* Upgrade Banner */}
+        {membershipTier !== 'pro' && (
+          <motion.div
+            initial={reducedMotion ? {} : { opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.1 }}
+          >
+            <div className="mb-8 p-4 bg-gradient-to-r from-[#F59E0B]/10 to-[#D97706]/5 border border-[#F59E0B]/20 rounded-[8px] flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+              <div>
+                <p className="font-medium text-white/80">Upgrade to Pro</p>
+                <p className="text-sm text-white/50">Get priority booking and exclusive benefits for $29/mo</p>
+              </div>
+              <Link to="/pricing">
+                <Button size="sm" variant="gradient">Upgrade Now</Button>
+              </Link>
             </div>
-            <Link to="/onboarding/athlete">
-              <Button size="sm" className="bg-[#F59E0B] hover:bg-[#D97706] text-white border-none">
-                Upgrade Now
-              </Button>
-            </Link>
-          </div>
+          </motion.div>
         )}
 
         {/* Stats */}
@@ -220,152 +263,187 @@ export function AthleteDashboard() {
           <StatsRow stats={stats} />
         </div>
 
-        {/* Upcoming Sessions Mini-Calendar Widget */}
-        <Card className="mb-8 p-5">
-          <div className="flex items-center justify-between mb-3">
-            <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-50">Upcoming Sessions</h3>
-            <Link
-              to="/dashboard/athlete/calendar"
-              className="text-xs text-[#2563EB] hover:text-[#1d4ed8] font-medium"
-            >
-              View Full Calendar →
-            </Link>
-          </div>
-          {loading ? (
-            <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-[#2563EB] mx-auto" />
-          ) : upcomingSessions.length === 0 ? (
-            <p className="text-sm text-gray-500 dark:text-gray-400">No upcoming sessions</p>
-          ) : (
-            <div className="space-y-2">
-              {upcomingSessions.slice(0, 3).map((booking) => (
-                <div key={booking.id} className="flex items-center justify-between py-1.5">
-                  <div className="flex items-center gap-3">
-                    <div className="w-2 h-2 rounded-full bg-[#2563EB]" />
-                    <div>
-                      <p className="text-sm font-medium text-gray-900 dark:text-gray-50">{booking.coach_name}</p>
-                      <p className="text-xs text-gray-500 dark:text-gray-400">
-                        {booking.sport} · {new Date(booking.session_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-                      </p>
-                    </div>
-                  </div>
-                  <Badge status={getBadgeStatus(booking.status)} />
-                </div>
-              ))}
+        {/* Upcoming Sessions Widget */}
+        <motion.div
+          initial={reducedMotion ? {} : { opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.15 }}
+        >
+          <Card variant="glass" className="mb-8 p-5">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-sm font-semibold text-white/90">Upcoming Sessions</h3>
+              <Link
+                to="/dashboard/athlete/calendar"
+                className="text-xs gradient-text hover:opacity-80 transition-opacity font-medium"
+              >
+                View Full Calendar &rarr;
+              </Link>
             </div>
-          )}
-        </Card>
-
-        {/* Upcoming Sessions */}
-        <Card className="mb-8">
-          <div className="p-6 border-b border-[#E5E7EB] dark:border-gray-700">
-            <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-50">Upcoming Sessions</h2>
-          </div>
-          <div className="divide-y divide-[#E5E7EB] dark:divide-gray-700">
             {loading ? (
-              <div className="p-6 text-center">
-                <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-[#2563EB] mx-auto mb-2" />
-                <p className="text-gray-500 dark:text-gray-400 text-sm">Loading...</p>
-              </div>
+              <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-[#2563EB] mx-auto" />
             ) : upcomingSessions.length === 0 ? (
-              <div className="p-6 text-center">
-                <p className="text-gray-500 dark:text-gray-400 mb-4">No upcoming sessions</p>
-                <Link to="/coaches">
-                  <Button variant="secondary" size="sm">Browse coaches</Button>
-                </Link>
-              </div>
+              <p className="text-sm text-white/40">No upcoming sessions</p>
             ) : (
-              upcomingSessions.map((booking) => (
-                <div key={booking.id} className="p-4 sm:p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                  <div>
-                    <p className="font-medium text-gray-900 dark:text-gray-50">{booking.coach_name}</p>
-                    <p className="text-sm text-gray-500 dark:text-gray-400">
-                      {booking.sport} &middot; {new Date(booking.session_date).toLocaleDateString()}
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    {booking.amount && (
-                      <span className="text-sm text-gray-500 dark:text-gray-400">${(booking.amount / 100).toFixed(2)}</span>
-                    )}
+              <div className="space-y-2">
+                {upcomingSessions.slice(0, 3).map((booking) => (
+                  <div key={booking.id} className="flex items-center justify-between py-1.5">
+                    <div className="flex items-center gap-3">
+                      <div className="w-2 h-2 rounded-full bg-gradient-to-r from-[#2563EB] to-[#06B6D4]" />
+                      <div>
+                        <p className="text-sm font-medium text-white/90">{booking.coach_name}</p>
+                        <p className="text-xs text-white/40">
+                          {booking.sport} · {new Date(booking.session_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                        </p>
+                      </div>
+                    </div>
                     <Badge status={getBadgeStatus(booking.status)} />
                   </div>
-                </div>
-              ))
+                ))}
+              </div>
             )}
-          </div>
-        </Card>
+          </Card>
+        </motion.div>
 
-        {/* Past Sessions with Confirm & Dispute */}
-        <Card>
-          <div className="p-6 border-b border-[#E5E7EB] dark:border-gray-700">
-            <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-50">Past Sessions</h2>
-          </div>
-          <div className="divide-y divide-[#E5E7EB] dark:divide-gray-700">
-            {loading ? (
-              <div className="p-6 text-center text-gray-500 dark:text-gray-400">Loading...</div>
-            ) : pastSessions.length === 0 ? (
-              <div className="p-6 text-center text-gray-500 dark:text-gray-400">No past sessions yet</div>
-            ) : (
-              pastSessions.map((booking) => (
-                <div key={booking.id} className="p-4 sm:p-6">
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-2">
+        {/* Upcoming Sessions Full */}
+        <motion.div
+          initial={reducedMotion ? {} : { opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.2 }}
+        >
+          <Card variant="glass" className="mb-8">
+            <div className="p-6 border-b border-white/[0.06]">
+              <h2 className="text-lg font-semibold text-white/90">Upcoming Sessions</h2>
+            </div>
+            <div className="divide-y divide-white/[0.04]">
+              {loading ? (
+                <div className="p-6 text-center">
+                  <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-[#2563EB] mx-auto mb-2" />
+                  <p className="text-white/50 text-sm">Loading...</p>
+                </div>
+              ) : upcomingSessions.length === 0 ? (
+                <div className="p-6 text-center">
+                  <p className="text-white/40 mb-4">No upcoming sessions</p>
+                  <Link to="/coaches">
+                    <Button variant="secondary" size="sm">Browse coaches</Button>
+                  </Link>
+                </div>
+              ) : (
+                upcomingSessions.map((booking) => (
+                  <div key={booking.id} className="p-4 sm:p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-2 hover:bg-white/[0.02] transition-colors">
                     <div>
-                      <p className="font-medium text-gray-900 dark:text-gray-50">{booking.coach_name}</p>
-                      <p className="text-sm text-gray-500 dark:text-gray-400">
+                      <p className="font-medium text-white/90">{booking.coach_name}</p>
+                      <p className="text-sm text-white/40">
                         {booking.sport} &middot; {new Date(booking.session_date).toLocaleDateString()}
                       </p>
                     </div>
-                    <Badge status={getBadgeStatus(booking.status)} />
-                  </div>
-
-                  {/* Session completion and dispute actions */}
-                  {booking.status === 'scheduled' && isPastSession(booking.session_date) && (
-                    <div className="mt-3 flex items-center gap-3">
-                      {!booking.athlete_confirmed ? (
-                        <Button
-                          size="sm"
-                          loading={confirmingBookingId === booking.id}
-                          onClick={() => handleConfirmSession(booking.id)}
-                          className="bg-[#16A34A] hover:bg-green-700 text-white"
-                        >
-                          Confirm Session Complete
-                        </Button>
-                      ) : !booking.coach_confirmed ? (
-                        <span className="text-sm text-[#D97706] bg-[#D97706]/10 px-3 py-1 rounded-full border border-[#D97706]/30">
-                          Waiting for coach to confirm
-                        </span>
-                      ) : null}
-
+                    <div className="flex items-center gap-3">
+                      {booking.amount && (
+                        <span className="text-sm text-white/40">${(booking.amount / 100).toFixed(2)}</span>
+                      )}
+                      <Badge status={getBadgeStatus(booking.status)} />
                       <button
-                        onClick={() => setDisputeBookingId(booking.id)}
-                        className="text-xs text-[#DC2626] hover:text-red-700 underline"
+                        onClick={() => handleCancelBooking(booking.id)}
+                        disabled={cancellingBookingId === booking.id}
+                        className="text-xs text-[#F87171] hover:text-red-400 underline disabled:opacity-50"
                       >
-                        Dispute
+                        {cancellingBookingId === booking.id ? 'Cancelling...' : 'Cancel'}
                       </button>
                     </div>
-                  )}
+                  </div>
+                ))
+              )}
+            </div>
+          </Card>
+        </motion.div>
 
-                  {booking.status === 'completed' && (
-                    <div className="mt-3">
-                      <span className="text-sm text-[#16A34A] font-medium">Session completed</span>
-                      {booking.payment_status === 'released' && (
-                        <span className="ml-2 text-xs text-[#16A34A]">Payment released</span>
-                      )}
+        {/* Past Sessions */}
+        <motion.div
+          initial={reducedMotion ? {} : { opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.25 }}
+        >
+          <Card variant="glass">
+            <div className="p-6 border-b border-white/[0.06]">
+              <h2 className="text-lg font-semibold text-white/90">Past Sessions</h2>
+            </div>
+            <div className="divide-y divide-white/[0.04]">
+              {loading ? (
+                <div className="p-6 text-center text-white/40">Loading...</div>
+              ) : pastSessions.length === 0 ? (
+                <div className="p-6 text-center text-white/40">No past sessions yet</div>
+              ) : (
+                pastSessions.map((booking) => (
+                  <div key={booking.id} className="p-4 sm:p-6 hover:bg-white/[0.02] transition-colors">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-2">
+                      <div>
+                        <p className="font-medium text-white/90">{booking.coach_name}</p>
+                        <p className="text-sm text-white/40">
+                          {booking.sport} &middot; {new Date(booking.session_date).toLocaleDateString()}
+                        </p>
+                      </div>
+                      <Badge status={getBadgeStatus(booking.status)} />
                     </div>
-                  )}
 
-                  {booking.status === 'disputed' && (
-                    <div className="mt-3">
-                      <span className="text-sm text-[#DC2626] font-medium">Under dispute review</span>
-                    </div>
-                  )}
-                </div>
-              ))
-            )}
-          </div>
-        </Card>
+                    {booking.status === 'scheduled' && isPastSession(booking.session_date) && (
+                      <div className="mt-3 flex items-center gap-3">
+                        {!booking.athlete_confirmed ? (
+                          <Button
+                            size="sm"
+                            variant="gradient"
+                            loading={confirmingBookingId === booking.id}
+                            onClick={() => handleConfirmSession(booking.id)}
+                          >
+                            Confirm Session Complete
+                          </Button>
+                        ) : !booking.coach_confirmed ? (
+                          <span className="text-sm text-[#FBBF24] bg-[#D97706]/10 px-3 py-1 rounded-full border border-[#D97706]/30">
+                            Waiting for coach to confirm
+                          </span>
+                        ) : null}
+
+                        <button
+                          onClick={() => setDisputeBookingId(booking.id)}
+                          className="text-xs text-[#F87171] hover:text-red-400 underline"
+                        >
+                          Dispute
+                        </button>
+                      </div>
+                    )}
+
+                    {booking.status === 'completed' && (
+                      <div className="mt-3">
+                        <span className="text-sm text-[#4ADE80] font-medium">Session completed</span>
+                        {booking.payment_status === 'released' && (
+                          <span className="ml-2 text-xs text-[#4ADE80]">Payment released</span>
+                        )}
+                        <Link to={`/review/${booking.id}`} className="ml-3 text-sm gradient-text hover:opacity-80 transition-opacity font-medium">
+                          Leave Review &rarr;
+                        </Link>
+                      </div>
+                    )}
+
+                    {booking.status === 'disputed' && (
+                      <div className="mt-3">
+                        <span className="text-sm text-[#F87171] font-medium">Under dispute review</span>
+                      </div>
+                    )}
+
+                    {booking.status === 'cancelled' && (
+                      <div className="mt-3">
+                        <span className="text-sm text-white/40 font-medium">Booking cancelled</span>
+                        {booking.payment_status === 'released' && (
+                          <span className="ml-2 text-xs text-[#4ADE80]">Refund issued</span>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                ))
+              )}
+            </div>
+          </Card>
+        </motion.div>
       </div>
 
-      {/* Dispute Modal */}
       {disputeBookingId && (
         <DisputeModal
           bookingId={disputeBookingId}
