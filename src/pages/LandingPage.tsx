@@ -324,9 +324,9 @@ export function LandingPage() {
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-0 rounded-[8px] overflow-hidden border border-[#E5E7EB] dark:border-white/[0.06]">
               {/* Athletes */}
-              <div className="bg-blue-50 dark:bg-gradient-to-br dark:from-[#2563EB]/10 dark:to-transparent p-10 sm:p-12 transition-colors duration-200">
+              <div className="bg-blue-50 dark:bg-white/[0.04] p-10 sm:p-12 transition-colors duration-200">
                 <span className="text-3xl mb-4 block">{'⚾'}</span>
-                <h3 className="text-2xl font-bold text-gray-900 dark:text-white/90 mb-3">
+                <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-3">
                   Find the right coach for your game
                 </h3>
                 <p className="text-gray-600 dark:text-gray-300 mb-6">
@@ -337,9 +337,9 @@ export function LandingPage() {
                 </Link>
               </div>
               {/* Coaches */}
-              <div className="bg-[#F9FAFB] dark:bg-gradient-to-br dark:from-[#06B6D4]/10 dark:to-transparent p-10 sm:p-12 border-t md:border-t-0 md:border-l border-[#E5E7EB] dark:border-white/[0.06] transition-colors duration-200">
+              <div className="bg-[#F9FAFB] dark:bg-white/[0.02] p-10 sm:p-12 border-t md:border-t-0 md:border-l border-[#E5E7EB] dark:border-white/[0.06] transition-colors duration-200">
                 <span className="text-3xl mb-4 block">{'🏆'}</span>
-                <h3 className="text-2xl font-bold text-gray-900 dark:text-white/90 mb-3">
+                <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-3">
                   Grow your coaching business
                 </h3>
                 <p className="text-gray-600 dark:text-gray-300 mb-6">
